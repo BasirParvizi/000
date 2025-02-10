@@ -15,19 +15,29 @@
             color: #333;
             margin-top: 20px;
         }
+        #userAgent {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #555;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body>
     <h1>تشخیص نوع مرورگر</h1>
     <p id="message">در حال بررسی...</p>
+    <p id="userAgent"></p>
     <script>
         function isTelegramInAppBrowser() {
-            return /Telegram/i.test(navigator.userAgent);
+            return /Telegram|TgWebApp/i.test(navigator.userAgent);
         }
-        
+
         document.getElementById("message").innerText = isTelegramInAppBrowser() 
             ? "این صفحه در مرورگر داخلی تلگرام باز شده است." 
             : "این صفحه در مرورگر خارجی باز شده است.";
+
+        // نمایش مقدار userAgent برای بررسی
+        document.getElementById("userAgent").innerText = "User-Agent: " + navigator.userAgent;
     </script>
 </body>
 </html>
