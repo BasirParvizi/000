@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تشخیص مرورگر تلگرام</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        #message {
+            font-size: 20px;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>تشخیص نوع مرورگر</h1>
+    <p id="message">در حال بررسی...</p>
+    <script>
+        function isTelegramInAppBrowser() {
+            return /Telegram/i.test(navigator.userAgent);
+        }
+        
+        document.getElementById("message").innerText = isTelegramInAppBrowser() 
+            ? "این صفحه در مرورگر داخلی تلگرام باز شده است." 
+            : "این صفحه در مرورگر خارجی باز شده است.";
+    </script>
+</body>
+</html>
