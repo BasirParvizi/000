@@ -3,41 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تشخیص مرورگر تلگرام</title>
+    <title>تشخیص نگاه</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: red;
+            transition: background-color 0.3s;
         }
-        #message {
-            font-size: 20px;
-            color: #333;
-            margin-top: 20px;
-        }
-        #userAgent {
-            margin-top: 20px;
-            font-size: 16px;
-            color: #555;
-            word-wrap: break-word;
+        video {
+            display: block;
+            width: 320px;
+            height: 240px;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            border: 2px solid black;
         }
     </style>
 </head>
 <body>
-    <h1>تشخیص نوع مرورگر</h1>
-    <p id="message">در حال بررسی...</p>
-    <p id="userAgent"></p>
+    <video id="video" autoplay playsinline></video>
     <script>
-        function isTelegramInAppBrowser() {
-            return /Telegram|TgWebApp/i.test(navigator.userAgent);
+        async function setupCamera() {
+            const video = document.getElementById("video");
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                video.width = 320;
+                video.height = 240;
+                return video;
+            } catch (error) {
+                console.error("دسترسی به دوربین امکان‌پذیر نیست: ", error);
+                return null;
+            }
         }
 
-        document.getElementById("message").innerText = isTelegramInAppBrowser() 
-            ? "این صفحه در مرورگر داخلی تلگرام باز شده است." 
-            : "این صفحه در مرورگر خارجی باز شده است.";
+        async function detectFace() {
+            const model = await blazeface.load();
+            const video = await setupCamera();
+            if (!video) return;
+            video.play();
+            const canvas = document.createElement("canvas");
+            canvas.width = video.width;
+            canvas.height = video.height;
+            const ctx = canvas.getContext("2d");
 
-        // نمایش مقدار userAgent برای بررسی
-        document.getElementById("userAgent").innerText = "User-Agent: " + navigator.userAgent;
+            function getEyePosition(landmarks) {
+                const leftEye = landmarks[2];
+                const rightEye = landmarks[3];
+                return (leftEye[1] + rightEye[1]) / 2;
+            }
+
+            let directLookStart = null;
+
+            async function analyzeFrame() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const predictions = await model.estimateFaces(video, false);
+                if (predictions.length > 0) {
+                    const eyeY = getEyePosition(predictions[0].landmarks);
+                    const noseY = predictions[0].landmarks[2][1];
+                    
+                    if (Math.abs(eyeY - noseY) < 10) {
+                        if (!directLookStart) directLookStart = Date.now();
+                        if (Date.now() - directLookStart >= 500) {
+                            document.body.style.backgroundColor = "green";
+                        }
+                    } else if (Math.abs(eyeY - noseY) < 30) {
+                        document.body.style.backgroundColor = "yellow";
+                        directLookStart = null;
+                    } else {
+                        document.body.style.backgroundColor = "red";
+                        directLookStart = null;
+                    }
+                } else {
+                    document.body.style.backgroundColor = "red";
+                    directLookStart = null;
+                }
+                requestAnimationFrame(analyzeFrame);
+            }
+            analyzeFrame();
+        }
+        detectFace();
     </script>
 </body>
 </html>
