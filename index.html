@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تشخیص نگاه</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <style>
         body {
             display: flex;
@@ -17,80 +17,61 @@
             transition: background-color 0.3s;
         }
         video {
-            display: block;
-            width: 320px;
-            height: 240px;
             position: absolute;
-            top: 10px;
-            left: 10px;
-            border: 2px solid black;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
         }
     </style>
 </head>
 <body>
     <video id="video" autoplay playsinline></video>
     <script>
-        async function setupCamera() {
-            const video = document.getElementById("video");
+        const videoElement = document.getElementById("video");
+
+        async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                await new Promise(resolve => video.onloadedmetadata = resolve);
-                video.width = 320;
-                video.height = 240;
-                return video;
+                videoElement.srcObject = stream;
             } catch (error) {
                 console.error("دسترسی به دوربین امکان‌پذیر نیست: ", error);
-                return null;
             }
         }
 
         async function detectFace() {
-            const model = await blazeface.load();
-            const video = await setupCamera();
-            if (!video) return;
-            video.play();
-            const canvas = document.createElement("canvas");
-            canvas.width = video.width;
-            canvas.height = video.height;
-            const ctx = canvas.getContext("2d");
+            const faceDetection = new FaceDetection.FaceDetection({
+                locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+            });
+            faceDetection.setOptions({ modelSelection: 1, minDetectionConfidence: 0.5 });
 
-            function getEyePosition(landmarks) {
-                const leftEye = landmarks[2];
-                const rightEye = landmarks[3];
-                return (leftEye[1] + rightEye[1]) / 2;
-            }
+            faceDetection.onResults(results => {
+                if (results.detections.length > 0) {
+                    const bbox = results.detections[0].boundingBox;
+                    const faceCenterX = bbox.xCenter;
+                    const faceCenterY = bbox.yCenter;
 
-            let directLookStart = null;
-
-            async function analyzeFrame() {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const predictions = await model.estimateFaces(video, false);
-                if (predictions.length > 0) {
-                    const eyeY = getEyePosition(predictions[0].landmarks);
-                    const noseY = predictions[0].landmarks[2][1];
-                    
-                    if (Math.abs(eyeY - noseY) < 10) {
-                        if (!directLookStart) directLookStart = Date.now();
-                        if (Date.now() - directLookStart >= 500) {
-                            document.body.style.backgroundColor = "green";
-                        }
-                    } else if (Math.abs(eyeY - noseY) < 30) {
+                    if (faceCenterY > 0.4 && faceCenterY < 0.6) {
+                        document.body.style.backgroundColor = "green";
+                    } else if (faceCenterY > 0.3 && faceCenterY < 0.7) {
                         document.body.style.backgroundColor = "yellow";
-                        directLookStart = null;
                     } else {
                         document.body.style.backgroundColor = "red";
-                        directLookStart = null;
                     }
                 } else {
                     document.body.style.backgroundColor = "red";
-                    directLookStart = null;
                 }
-                requestAnimationFrame(analyzeFrame);
-            }
-            analyzeFrame();
+            });
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => { await faceDetection.send({ image: videoElement }); },
+                width: 640,
+                height: 480
+            });
+            camera.start();
         }
-        detectFace();
+
+        startCamera().then(() => detectFace());
     </script>
 </body>
 </html>
