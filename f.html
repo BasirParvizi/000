@@ -8,6 +8,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap" rel="stylesheet">
 
+  <script>
+    // بررسی کنید که آیا شیء Telegram.WebApp موجود است
+    if (window.Telegram && window.Telegram.WebApp) {
+        // آماده کردن وب اپلیکیشن تلگرام
+        window.Telegram.WebApp.ready();
+
+        // تنظیم رنگ سربرگ
+        window.Telegram.WebApp.headerColor = "#ffffffcc"; // رنگ قرمز
+
+        // تنظیم رنگ پس‌زمینه
+        window.Telegram.WebApp.backgroundColor = "#ffffffcc"; // رنگ سبز
+
+        // تنظیم رنگ نوار پایین
+        window.Telegram.WebApp.bottomBarColor = "#ffffffcc"; // رنگ آبی
+    }
+</script>
 
   <style>
     * {
