@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favorites List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .favorites-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .favorite-item {
+      background-color: #fff;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .favorite-item a {
+      text-decoration: none;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .remove-btn {
+      cursor: pointer;
+      color: red;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>لیست فیوریت‌ها</h1>
+    <ul class="favorites-list" id="favorites-list"></ul>
+  </div>
+
+  <script>
+    let db;
+
+    // باز کردن دیتابیس
+    function openDB() {
+      const request = indexedDB.open('favoritesDB', 1);
+
+      request.onupgradeneeded = function(event) {
+        db = event.target.result;
+        if (!db.objectStoreNames.contains('favorites')) {
+          db.createObjectStore('favorites', { keyPath: 'username' });
+        }
+      };
+
+      request.onsuccess = function(event) {
+        db = event.target.result;
+        loadFavorites(); // بارگذاری فیوریت‌ها بعد از باز شدن دیتابیس
+      };
+
+      request.onerror = function() {
+        console.error('Database error');
+      };
+    }
+
+    // لود یوزرنیم‌های ذخیره شده و نمایش تو لیست
+    function loadFavorites() {
+      const transaction = db.transaction(['favorites'], 'readonly');
+      const store = transaction.objectStore('favorites');
+      const request = store.getAll();
+
+      request.onsuccess = function(event) {
+        const favorites = event.target.result;
+        displayFavorites(favorites);
+      };
+    }
+
+    // نمایش لیست فیوریت‌ها
+    function displayFavorites(favorites) {
+      const favoritesList = document.getElementById('favorites-list');
+      favoritesList.innerHTML = ''; // پاک کردن محتویات قبلی
+
+      if (favorites.length === 0) {
+        const noFavoritesMessage = document.createElement('li');
+        noFavoritesMessage.textContent = 'هیچ فیوریتی پیدا نشد.';
+        noFavoritesMessage.style.textAlign = 'center';
+        favoritesList.appendChild(noFavoritesMessage);
+      } else {
+        favorites.forEach(favorite => {
+          const li = document.createElement('li');
+          li.className = 'favorite-item';
+
+          const usernameLink = document.createElement('a');
+          usernameLink.href = `https://www.example.com/${favorite.username}`; // این لینک میتونه تغییر کنه
+          usernameLink.textContent = favorite.username;
+
+          const removeBtn = document.createElement('span');
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = 'حذف';
+          removeBtn.onclick = () => removeFavorite(favorite.username);
+
+          li.appendChild(usernameLink);
+          li.appendChild(removeBtn);
+
+          favoritesList.appendChild(li);
+        });
+      }
+    }
+
+    // حذف فیوریت از دیتابیس
+    function removeFavorite(username) {
+      const transaction = db.transaction(['favorites'], 'readwrite');
+      const store = transaction.objectStore('favorites');
+      store.delete(username);
+
+      transaction.oncomplete = function() {
+        loadFavorites(); // بعد از حذف، دوباره لیست رو لود کن
+      };
+
+      transaction.onerror = function() {
+        console.error('Error deleting favorite');
+      };
+    }
+
+    // شروع کار
+    openDB();
+  </script>
+
+</body>
+</html>
